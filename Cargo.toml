@@ -1,5 +1,5 @@
 [package]
-name = "api"
+name = "idle_game_api"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 warp = "0.3"
-dotenv = "0.15.0"
+diesel = { version = "2", features = ["postgres"] }
+dotenv = "0.15"
