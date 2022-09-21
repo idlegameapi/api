@@ -1,5 +1,5 @@
 use dotenv::vars;
-
+// TODO: implement other import environment variables here, perhaps improve this config file to not need creation every time
 #[derive(Debug)]
 pub struct Config {
     pub db_url: String,
