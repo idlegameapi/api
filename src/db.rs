@@ -1,9 +1,17 @@
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
-use std::env;
+use crate::models::User;
+use deadpool_postgres::Client;
+use tokio_pg_mapper::{Error, FromTokioPostgresRow};
 
-pub fn establish_connection() -> PgConnection {
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+pub async fn get_userdata(client: &Client, token: &str) -> Result<User, Error> {
+    let _stmt = include_str!("../sql/get_user.sql");
+    let _stmt = _stmt.replace("$token", format!("'{}'", &token).as_str());
+    let stmt = client.prepare(&_stmt).await?;
+
+    let queried_data = client
+        .query(&stmt, &[])
+        .await?
+        .pop()
+        .ok_or(Error::ColumnNotFound)?;
+
+    User::from_row_ref(&queried_data)
 }
