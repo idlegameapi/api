@@ -22,7 +22,7 @@ impl std::str::FromStr for AuthPair {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.split(' ');
 
-        let x = match s[0] {
+        let auth_type = match split.next().ok_or(AuthorizationError)? {
             "Basic" => AuthType::Basic,
             "Bearer" => AuthType::Bearer,
             "Digest" => AuthType::Digest,
