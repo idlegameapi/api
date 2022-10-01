@@ -1,7 +1,10 @@
-use warp::{Reply, Rejection};
+use warp::{Rejection, Reply};
 
 use crate::auth;
 
-pub async fn auth(db_pool: deadpool_postgres::Pool, auth_header: auth::AuthPair) -> std::result::Result<impl Reply, Rejection> {
+pub async fn auth(
+    db_pool: deadpool_postgres::Pool,
+    auth_header: auth::Auth,
+) -> std::result::Result<impl Reply, Rejection> {
     todo!()
 }

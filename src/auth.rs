@@ -1,45 +1,33 @@
-pub enum AuthType {
-    Basic,
-    Bearer,
-    Digest,
-    HOBA,
-    Mutual,
-    Negotiate,
-    VAPID,
-    SCRAM
-}
-
 #[derive(Debug)]
 pub struct AuthorizationError;
+
 impl warp::reject::Reject for AuthorizationError {}
 
-pub type Token = String;
-pub struct AuthPair(AuthType, Token);
+impl From<std::string::FromUtf8Error> for AuthorizationError {
+    fn from(_: std::string::FromUtf8Error) -> Self {
+        AuthorizationError
+    }
+}
 
-impl std::str::FromStr for AuthPair {
+impl From<base64::DecodeError> for AuthorizationError {
+    fn from(_: base64::DecodeError) -> Self {
+        AuthorizationError
+    }
+}
+
+pub struct Auth(String);
+
+impl std::str::FromStr for Auth {
     type Err = AuthorizationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.split(' ');
-
-        let auth_type = match split.next().ok_or(AuthorizationError)? {
-            "Basic" => AuthType::Basic,
-            "Bearer" => AuthType::Bearer,
-            "Digest" => AuthType::Digest,
-            "HOBA" => AuthType::HOBA,
-            "Mutual" => AuthType::Mutual,
-            "Negotiate" => AuthType::Negotiate,
-            "VAPID" => AuthType::VAPID,
-            "SCRAM" => AuthType::SCRAM,
-            _ => return Err(AuthorizationError)
-        };
-
-        let token = split.next().ok_or(AuthorizationError)?;
-
-        if split.next().is_none() {
-            Ok(AuthPair(auth_type, token.to_string()))
-        } else {
-            Err(AuthorizationError)
+        match s.strip_prefix("Basic ") {
+            Some(token) if !token.contains(" ") && !token.is_empty() => {
+                let bytes = base64::decode(token)?;
+                let valid = String::from_utf8(bytes)?;
+                Ok(Self(valid))
+            }
+            _ => Err(AuthorizationError),
         }
     }
 }
