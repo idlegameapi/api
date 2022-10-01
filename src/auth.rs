@@ -20,8 +20,7 @@ impl std::str::FromStr for AuthPair {
     type Err = AuthorizationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s: Vec<_> = s.split(" ").collect();
-        if s.len() > 2 { return Err(AuthorizationError) };
+        let mut split = s.split(' ');
 
         let x = match s[0] {
             "Basic" => AuthType::Basic,
