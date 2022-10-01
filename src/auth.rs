@@ -34,6 +34,12 @@ impl std::str::FromStr for AuthPair {
             _ => return Err(AuthorizationError)
         };
 
-        Ok(AuthPair(x, s[1].to_string()))
+        let token = split.next().ok_or(AuthorizationError)?;
+
+        if split.next().is_none() {
+            Ok(AuthPair(auth_type, token.to_string()))
+        } else {
+            Err(AuthorizationError)
+        }
     }
 }
