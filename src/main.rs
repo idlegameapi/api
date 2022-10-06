@@ -8,6 +8,13 @@ use deadpool_postgres::Runtime;
 use tokio_postgres::NoTls;
 use warp::Filter;
 
+#[macro_export]
+macro_rules! warp_reply {
+    ($x:expr, $y:ident) => {
+        ::warp::reply::with_status($x, warp::http::StatusCode::$y)
+    };
+}
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -21,7 +28,8 @@ async fn main() {
     let routes = warp::any()
         .and(state_filter.clone())
         .and(warp::header::<auth::Auth>("authorization"))
-        .and_then(routes::auth);
+        .and_then(routes::auth)
+        .recover(routes::handle_rejection);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

@@ -2,9 +2,9 @@ use crate::models::User;
 use deadpool_postgres::Client;
 use tokio_pg_mapper::{Error, FromTokioPostgresRow};
 
-pub async fn get_userdata(client: &Client, token: &str) -> Result<User, Error> {
+pub async fn get_user(client: &Client, username: &str) -> Result<User, Error> {
     let _stmt = include_str!("../sql/get_user.sql");
-    let _stmt = _stmt.replace("$token", format!("'{}'", &token).as_str());
+    let _stmt = _stmt.replace("$username", format!("'{}'", &username).as_str());
     let stmt = client.prepare(&_stmt).await?;
 
     let queried_data = client

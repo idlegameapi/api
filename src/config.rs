@@ -2,18 +2,21 @@ use dotenv::vars;
 
 #[derive(Debug)]
 pub struct Config {
-    pub token_hasher: String,
-    pub server_addr: String,
     pub pg: deadpool_postgres::Config,
 }
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Config {
     pub fn new() -> Self {
         let environment_vars: Vec<(String, String)> = vars().collect();
         let mut database_config = deadpool_postgres::Config::new();
         Config::setup_pg_config(&mut database_config, &environment_vars);
         Config {
-            token_hasher: find_key(&environment_vars, "TOKEN_HASHER"),
-            server_addr: find_key(&environment_vars, "SERVER_ADDR"),
             pg: database_config,
         }
     }

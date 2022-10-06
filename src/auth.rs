@@ -1,33 +1,73 @@
+use base64::DecodeError;
+use std::string::FromUtf8Error;
+
 #[derive(Debug)]
-pub struct AuthorizationError;
+pub enum InvalidBase64 {
+    InvalidByte { index: usize, offending_byte: u8 },
+    InvalidLength,
+    InvalidLastSymbol { index: usize, offending_byte: u8 },
+}
+
+impl From<base64::DecodeError> for InvalidBase64 {
+    fn from(err: base64::DecodeError) -> Self {
+        match err {
+            DecodeError::InvalidByte(index, offending_byte) => InvalidBase64::InvalidByte {
+                index,
+                offending_byte,
+            },
+            DecodeError::InvalidLength => InvalidBase64::InvalidLength,
+            DecodeError::InvalidLastSymbol(index, offending_byte) => {
+                InvalidBase64::InvalidLastSymbol {
+                    index,
+                    offending_byte,
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum AuthorizationError {
+    InvalidBase64(InvalidBase64),
+    InvalidUTF8(FromUtf8Error),
+    NotBasicAuthentication,
+}
 
 impl warp::reject::Reject for AuthorizationError {}
 
-impl From<std::string::FromUtf8Error> for AuthorizationError {
-    fn from(_: std::string::FromUtf8Error) -> Self {
-        AuthorizationError
+impl From<FromUtf8Error> for AuthorizationError {
+    fn from(err: FromUtf8Error) -> Self {
+        AuthorizationError::InvalidUTF8(err)
     }
 }
 
 impl From<base64::DecodeError> for AuthorizationError {
-    fn from(_: base64::DecodeError) -> Self {
-        AuthorizationError
+    fn from(err: base64::DecodeError) -> Self {
+        AuthorizationError::InvalidBase64(err.into())
     }
 }
 
-pub struct Auth(String);
+pub struct Auth {
+    pub username: String,
+    pub password: String,
+}
 
 impl std::str::FromStr for Auth {
     type Err = AuthorizationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.strip_prefix("Basic ") {
-            Some(token) if !token.contains(" ") && !token.is_empty() => {
+            Some(token) if !token.contains(' ') && !token.is_empty() => {
                 let bytes = base64::decode(token)?;
                 let valid = String::from_utf8(bytes)?;
-                Ok(Self(valid))
+                let arr = valid.split(':').collect::<Vec<&str>>();
+
+                Ok(Self {
+                    username: arr[0].to_string(),
+                    password: arr[1].to_string(),
+                })
             }
-            _ => Err(AuthorizationError),
+            _ => Err(AuthorizationError::NotBasicAuthentication),
         }
     }
 }
