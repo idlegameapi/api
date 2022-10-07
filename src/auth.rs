@@ -52,22 +52,18 @@ pub struct Auth {
     pub password: String,
 }
 
-impl std::str::FromStr for Auth {
-    type Err = AuthorizationError;
+pub async fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
+    match s.strip_prefix("Basic ") {
+        Some(token) if !token.contains(' ') && !token.is_empty() => {
+            let bytes = base64::decode(token)?;
+            let valid = String::from_utf8(bytes)?;
+            let arr = valid.split(':').collect::<Vec<&str>>();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.strip_prefix("Basic ") {
-            Some(token) if !token.contains(' ') && !token.is_empty() => {
-                let bytes = base64::decode(token)?;
-                let valid = String::from_utf8(bytes)?;
-                let arr = valid.split(':').collect::<Vec<&str>>();
-
-                Ok(Self {
-                    username: arr[0].to_string(),
-                    password: arr[1].to_string(),
-                })
-            }
-            _ => Err(AuthorizationError::NotBasicAuthentication),
+            Ok(Auth {
+                username: arr[0].to_string(),
+                password: arr[1].to_string(),
+            })
         }
+        _ => Err(AuthorizationError::NotBasicAuthentication),
     }
 }

@@ -27,7 +27,7 @@ async fn main() {
 
     let routes = warp::any()
         .and(state_filter.clone())
-        .and(warp::header::<auth::Auth>("authorization"))
+        .and(warp::header::<String>("Authorization"))
         .and_then(routes::auth)
         .recover(routes::handle_rejection);
 
