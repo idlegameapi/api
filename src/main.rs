@@ -23,12 +23,14 @@ async fn main() {
     let config = crate::config::Config::new();
     // note(SirH): this pool will go through routes so then you can interact with the db via this manager
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
+
     let state_filter = warp::any().map(move || pool.clone());
 
     let routes = warp::any()
         .and(state_filter.clone())
         .and(warp::header::<String>("Authorization"))
         .and_then(routes::auth)
+        .and_then(routes::hello_world)
         .recover(routes::handle_rejection);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;

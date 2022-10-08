@@ -8,6 +8,11 @@ struct InternalError;
 
 impl warp::reject::Reject for InternalError {}
 
+#[derive(Debug)]
+struct NotAuthorized;
+
+impl warp::reject::Reject for NotAuthorized {}
+
 pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert::Infallible> {
     if err.is_not_found() {
         Ok(crate::warp_reply!(
@@ -16,6 +21,11 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
         ))
     } else if let Some(e) = err.find::<auth::AuthorizationError>() {
         Ok(crate::warp_reply!(format!("{:?}", e), BAD_REQUEST))
+    } else if err.find::<NotAuthorized>().is_some() {
+        Ok(crate::warp_reply!(
+            "The password is incorrect".to_string(),
+            UNAUTHORIZED
+        ))
     } else {
         eprintln!("An unknown error occured: {:?}", err);
         Ok(crate::warp_reply!(
@@ -28,8 +38,9 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
 pub async fn auth(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
-) -> std::result::Result<impl Reply, Rejection> {
+) -> std::result::Result<deadpool_postgres::Pool, Rejection> {
     let auth::Auth { username, password } = auth::validate_header(auth_header.as_str()).await?;
+    println!("{}:{}", username, password);
     let pool = db_pool
         .get()
         .await
@@ -44,12 +55,20 @@ pub async fn auth(
 
     let mut hasher = Sha256::new();
     let mut x = Vec::from(password.as_bytes());
-    x.extend(user.salt.as_bytes());
+    x.extend(user.salt.trim().as_bytes());
 
     hasher.update(x);
     let result = hasher.finalize();
 
-    todo!();
+    if result[..] == user.token {
+        Ok(db_pool)
+    } else {
+        Err(warp::reject::custom(NotAuthorized))
+    }
+}
 
-    Ok(crate::warp_reply!("Ok", OK))
+pub async fn hello_world(
+    db_pool: deadpool_postgres::Pool,
+) -> Result<impl Reply, std::convert::Infallible> {
+    Ok("Hello, authorized user!")
 }

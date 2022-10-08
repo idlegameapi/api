@@ -6,7 +6,7 @@ use tokio_pg_mapper_derive::PostgresMapper;
 #[pg_mapper(table = "users")]
 pub struct User {
     pub username: String,
-    pub token: String,
+    pub token: Vec<u8>,
     pub salt: String,
     pub balance: f64,
     pub collected_timestamp: SystemTime,
