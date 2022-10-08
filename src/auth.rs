@@ -14,6 +14,7 @@ pub enum AuthorizationError {
 }
 
 impl warp::reject::Reject for AuthorizationError {}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Auth {
     pub username: String,
