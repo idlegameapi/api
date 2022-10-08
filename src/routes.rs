@@ -39,7 +39,7 @@ pub async fn auth(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
 ) -> std::result::Result<deadpool_postgres::Pool, Rejection> {
-    let auth::Auth { username, password } = auth::validate_header(auth_header.as_str()).await?;
+    let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
     let pool = db_pool
         .get()
         .await
@@ -53,7 +53,7 @@ pub async fn auth(
         })?;
 
     let mut hasher = Sha256::new();
-    let mut x = Vec::from(password.as_bytes());
+    let mut x = password.into_bytes();
     x.extend(user.salt.trim().as_bytes());
 
     hasher.update(x);

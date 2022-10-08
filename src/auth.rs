@@ -3,11 +3,11 @@ use std::string::FromUtf8Error;
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AuthorizationError {
-    #[error("The provided base64 is invalid")]
+    #[error("the provided base64 is invalid: {0}")]
     InvalidBase64(DecodeError),
-    #[error("The decoded UTF-8 is invalid")]
+    #[error("the decoded UTF-8 is invalid: {0}")]
     InvalidUTF8(FromUtf8Error),
-    #[error("The authentication format was not Basic")]
+    #[error("the authentication format was not Basic")]
     NotBasicAuthentication,
 }
 
@@ -31,16 +31,16 @@ pub struct Auth {
     pub password: String,
 }
 
-pub async fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
+pub fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
     match s.strip_prefix("Basic ") {
         Some(token) if !token.contains(' ') && !token.is_empty() => {
             let bytes = base64::decode(token)?;
             let valid = String::from_utf8(bytes)?;
-            let arr = valid.split(':').collect::<Vec<&str>>();
+            let (username, password) = valid.split_once(':').unwrap();
 
             Ok(Auth {
-                username: arr[0].to_string(),
-                password: arr[1].to_string(),
+                username: username.to_string(),
+                password: password.to_string(),
             })
         }
         _ => Err(AuthorizationError::NotBasicAuthentication),
@@ -51,19 +51,15 @@ pub async fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_validation() {
+    #[test]
+    fn test_validation() {
         let expected = Auth {
             username: "username".to_string(),
             password: "password".to_string(),
         };
 
-        let got = validate_header("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")
-            .await
-            .unwrap();
+        let got = validate_header("Basic dXNlcm5hbWU6cGFzc3dvcmQ=").unwrap();
 
-        if expected != got {
-            panic!("expected: {expected:?}, got: {got:?}");
-        }
+        assert_eq!(expected, got);
     }
 }
