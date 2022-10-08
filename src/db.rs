@@ -21,7 +21,7 @@ pub async fn get_user(client: &Client, username: &str) -> Result<User, Error> {
 pub async fn create_user(
     client: &Client,
     username: &str,
-    token: Vec<u8>,
+    token: &[u8],
     salt: &str,
     balance: f64,
     collected_timestamp: SystemTime,
