@@ -39,9 +39,7 @@ pub async fn auth(
         .await
         .map_err(|err| match err {
             tokio_pg_mapper::Error::ColumnNotFound => warp::reject::not_found(),
-            _ => {
-                warp::reject::custom(InternalError)
-            },
+            _ => warp::reject::custom(InternalError),
         })?;
 
     let mut hasher = Sha256::new();

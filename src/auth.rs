@@ -1,7 +1,7 @@
 use base64::DecodeError;
 use std::string::FromUtf8Error;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum InvalidBase64 {
     InvalidByte { index: usize, offending_byte: u8 },
     InvalidLength,
@@ -26,10 +26,13 @@ impl From<base64::DecodeError> for InvalidBase64 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AuthorizationError {
+    #[error("The provided base64 is invalid")]
     InvalidBase64(InvalidBase64),
+    #[error("The decoded UTF-8 is invalid")]
     InvalidUTF8(FromUtf8Error),
+    #[error("The authentication format was not Basic")]
     NotBasicAuthentication,
 }
 
@@ -47,6 +50,7 @@ impl From<base64::DecodeError> for AuthorizationError {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Auth {
     pub username: String,
     pub password: String,
@@ -65,5 +69,26 @@ pub async fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
             })
         }
         _ => Err(AuthorizationError::NotBasicAuthentication),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_validation() {
+        let expected = Auth {
+            username: "username".to_string(),
+            password: "password".to_string(),
+        };
+
+        let got = validate_header("Basic dXNlcm5hbWU6cGFzc3dvcmQ=")
+            .await
+            .unwrap();
+
+        if expected != got {
+            panic!("expected: {expected:?}, got: {got:?}");
+        }
     }
 }
