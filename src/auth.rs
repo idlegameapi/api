@@ -76,8 +76,8 @@ pub async fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_validation() {
+    #[test]
+    fn test_validation() {
         let expected = Auth {
             username: "username".to_string(),
             password: "password".to_string(),
