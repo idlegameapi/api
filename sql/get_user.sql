@@ -1,3 +1,3 @@
 SELECT *
 FROM "users"
-WHERE "token" = $token;
+WHERE "username" = $username;
