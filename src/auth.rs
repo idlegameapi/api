@@ -4,9 +4,9 @@ use std::string::FromUtf8Error;
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AuthorizationError {
     #[error("the provided base64 is invalid: {0}")]
-    InvalidBase64(DecodeError),
+    InvalidBase64(#[from] #[source] DecodeError),
     #[error("the decoded UTF-8 is invalid: {0}")]
-    InvalidUTF8(FromUtf8Error),
+    InvalidUtf8(#[from] #[source] FromUtf8Error),
     #[error("the authentication format was not Basic")]
     NotBasicAuthentication,
     #[error("the format is invalid and should follow username:password")]
@@ -14,19 +14,6 @@ pub enum AuthorizationError {
 }
 
 impl warp::reject::Reject for AuthorizationError {}
-
-impl From<FromUtf8Error> for AuthorizationError {
-    fn from(err: FromUtf8Error) -> Self {
-        AuthorizationError::InvalidUTF8(err)
-    }
-}
-
-impl From<base64::DecodeError> for AuthorizationError {
-    fn from(err: base64::DecodeError) -> Self {
-        AuthorizationError::InvalidBase64(err)
-    }
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub struct Auth {
     pub username: String,
