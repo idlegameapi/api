@@ -1,35 +1,10 @@
 use base64::DecodeError;
 use std::string::FromUtf8Error;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum InvalidBase64 {
-    InvalidByte { index: usize, offending_byte: u8 },
-    InvalidLength,
-    InvalidLastSymbol { index: usize, offending_byte: u8 },
-}
-
-impl From<base64::DecodeError> for InvalidBase64 {
-    fn from(err: base64::DecodeError) -> Self {
-        match err {
-            DecodeError::InvalidByte(index, offending_byte) => InvalidBase64::InvalidByte {
-                index,
-                offending_byte,
-            },
-            DecodeError::InvalidLength => InvalidBase64::InvalidLength,
-            DecodeError::InvalidLastSymbol(index, offending_byte) => {
-                InvalidBase64::InvalidLastSymbol {
-                    index,
-                    offending_byte,
-                }
-            }
-        }
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum AuthorizationError {
     #[error("The provided base64 is invalid")]
-    InvalidBase64(InvalidBase64),
+    InvalidBase64(DecodeError),
     #[error("The decoded UTF-8 is invalid")]
     InvalidUTF8(FromUtf8Error),
     #[error("The authentication format was not Basic")]
@@ -46,7 +21,7 @@ impl From<FromUtf8Error> for AuthorizationError {
 
 impl From<base64::DecodeError> for AuthorizationError {
     fn from(err: base64::DecodeError) -> Self {
-        AuthorizationError::InvalidBase64(err.into())
+        AuthorizationError::InvalidBase64(err)
     }
 }
 
