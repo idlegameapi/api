@@ -9,6 +9,8 @@ pub enum AuthorizationError {
     InvalidUTF8(FromUtf8Error),
     #[error("the authentication format was not Basic")]
     NotBasicAuthentication,
+    #[error("the format is invalid and should follow username:password")]
+    InvalidFormat,
 }
 
 impl warp::reject::Reject for AuthorizationError {}
@@ -36,7 +38,9 @@ pub fn validate_header(s: &str) -> Result<Auth, AuthorizationError> {
         Some(token) if !token.contains(' ') && !token.is_empty() => {
             let bytes = base64::decode(token)?;
             let valid = String::from_utf8(bytes)?;
-            let (username, password) = valid.split_once(':').unwrap();
+            let (username, password) = valid
+                .split_once(':')
+                .ok_or(AuthorizationError::InvalidFormat)?;
 
             Ok(Auth {
                 username: username.to_string(),
