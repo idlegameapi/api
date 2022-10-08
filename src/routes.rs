@@ -40,7 +40,6 @@ pub async fn auth(
     auth_header: String,
 ) -> std::result::Result<deadpool_postgres::Pool, Rejection> {
     let auth::Auth { username, password } = auth::validate_header(auth_header.as_str()).await?;
-    println!("{}:{}", username, password);
     let pool = db_pool
         .get()
         .await
