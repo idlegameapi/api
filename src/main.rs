@@ -25,13 +25,21 @@ async fn main() {
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
     let state_filter = warp::any().map(move || pool.clone());
-
-    let routes = warp::any()
+    let account_filter = warp::path("account")
         .and(state_filter.clone())
-        .and(warp::header::<String>("Authorization"))
+        .and(warp::header::<String>("Authorization"));
+
+    // note(SirH): I know there are multiple things wrong with this but their chaining of ands, thens, and ors doesn't want to work in the way I want it to
+    // so I'm leaving it as is for now
+    let account_creation = warp::post().and_then(routes::create_account);
+
+    let account_retrieval = warp::get()
+        .and(account_filter.clone())
         .and_then(routes::auth)
         .and_then(routes::hello_world)
         .recover(routes::handle_rejection);
+
+    let routes = account_creation.or(account_retrieval);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

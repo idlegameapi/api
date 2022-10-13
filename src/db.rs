@@ -30,6 +30,7 @@ pub async fn create_user(
     let queried_data = client
         .query(
             &stmt,
+            // remove the use of SystemTime::now() once we're able to add in CURRENT_TIMESTAMP to User sql
             &[&username, &token, &salt, &SystemTime::now()],
         )
         .await?

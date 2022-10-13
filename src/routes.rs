@@ -4,6 +4,11 @@ use warp::{Rejection, Reply};
 use crate::auth;
 
 #[derive(Debug)]
+struct Conflict;
+
+impl warp::reject::Reject for Conflict {}
+
+#[derive(Debug)]
 struct InternalError;
 
 impl warp::reject::Reject for InternalError {}
@@ -26,6 +31,12 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
             "The password is incorrect".to_string(),
             UNAUTHORIZED
         ))
+    }
+    else if err.find::<Conflict>().is_some() {
+        Ok(crate::warp_reply!(
+            "The provided username already exists".to_string(),
+            CONFLICT
+        ))
     } else {
         eprintln!("An unknown error occured: {:?}", err);
         Ok(crate::warp_reply!(
@@ -38,7 +49,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
 pub async fn create_account(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
-) -> Result<impl Reply, Rejection> {
+) -> Result<deadpool_postgres::Pool, Rejection> {
     let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
     let pool = db_pool
         .get()
@@ -53,10 +64,7 @@ pub async fn create_account(
         });
 
     if let Ok(user) = user {
-        return Ok(crate::warp_reply!(
-            format!("User {} already exists", user.username),
-            CONFLICT
-        ));
+        return Err(warp::reject::custom(Conflict));
     }
 
     let salt: String = (0..10).map(|_| rand::random::<char>()).collect();
@@ -72,7 +80,10 @@ pub async fn create_account(
         .await
         .map_err(|_| warp::reject::custom(InternalError))?;
 
-    Ok(crate::warp_reply!("Account created".to_owned(), CREATED))
+    // note(SirH): I'd prefer we use more formal looking success responses but your current filter seems to say otherwise
+    // Ok(crate::warp_reply!("Account created".to_owned(), CREATED));
+
+    Ok(db_pool)
 }
 
 pub async fn auth(
