@@ -23,8 +23,6 @@ pub async fn create_user(
     username: &str,
     token: &[u8],
     salt: &str,
-    balance: f64,
-    collected_timestamp: SystemTime,
 ) -> Result<User, Error> {
     let _stmt = include_str!("../sql/create_user.sql");
     let stmt = client.prepare(_stmt).await?;
@@ -32,7 +30,7 @@ pub async fn create_user(
     let queried_data = client
         .query(
             &stmt,
-            &[&username, &token, &salt, &balance, &collected_timestamp],
+            &[&username, &token, &salt, &SystemTime::now()],
         )
         .await?
         .pop()

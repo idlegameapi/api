@@ -35,6 +35,46 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
     }
 }
 
+pub async fn create_account(
+    db_pool: deadpool_postgres::Pool,
+    auth_header: String,
+) -> Result<impl Reply, Rejection> {
+    let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
+    let pool = db_pool
+        .get()
+        .await
+        .map_err(|_| warp::reject::custom(InternalError))?;
+
+    let user = crate::db::get_user(&pool, &username)
+        .await
+        .map_err(|err| match err {
+            tokio_pg_mapper::Error::ColumnNotFound => warp::reject::not_found(),
+            _ => warp::reject::custom(InternalError),
+        });
+
+    if let Ok(user) = user {
+        return Ok(crate::warp_reply!(
+            format!("User {} already exists", user.username),
+            CONFLICT
+        ));
+    }
+
+    let salt: String = (0..10).map(|_| rand::random::<char>()).collect();
+
+    let mut hasher = Sha256::new();
+    let mut x = password.into_bytes();
+    x.extend(salt.trim().as_bytes());
+
+    hasher.update(x);
+    let result = &hasher.finalize()[..];
+
+    let new_user = crate::db::create_user(&pool, &username, result, &salt)
+        .await
+        .map_err(|_| warp::reject::custom(InternalError))?;
+
+    Ok(crate::warp_reply!("Account created".to_owned(), CREATED))
+}
+
 pub async fn auth(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
