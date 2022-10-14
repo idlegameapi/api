@@ -109,8 +109,6 @@ pub async fn auth(
     let result = hasher.finalize();
 
     if result[..] == user.token {
-        // Ok(db_pool)
-        // respond with user without salt
         Ok(crate::warp_reply!(user.token, OK))
     } else {
         Err(warp::reject::custom(NotAuthorized))
