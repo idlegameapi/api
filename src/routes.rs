@@ -49,7 +49,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
 pub async fn create_account(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
-) -> Result<deadpool_postgres::Pool, Rejection> {
+) -> Result<impl Reply, Rejection> {
     let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
     let pool = db_pool
         .get()
@@ -81,15 +81,15 @@ pub async fn create_account(
         .map_err(|_| warp::reject::custom(InternalError))?;
 
     // note(SirH): I'd prefer we use more formal looking success responses but your current filter seems to say otherwise
-    // Ok(crate::warp_reply!("Account created".to_owned(), CREATED));
+    Ok(crate::warp_reply!("Account created".to_owned(), CREATED))
 
-    Ok(db_pool)
+    // Ok(db_pool)
 }
 
 pub async fn auth(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
-) -> std::result::Result<deadpool_postgres::Pool, Rejection> {
+) -> std::result::Result<impl Reply, Rejection> {
     let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
     let pool = db_pool
         .get()
@@ -111,14 +111,10 @@ pub async fn auth(
     let result = hasher.finalize();
 
     if result[..] == user.token {
-        Ok(db_pool)
+        // Ok(db_pool)
+        // respond with user without salt
+        Ok(crate::warp_reply!(user.token, OK))
     } else {
         Err(warp::reject::custom(NotAuthorized))
     }
-}
-
-pub async fn hello_world(
-    db_pool: deadpool_postgres::Pool,
-) -> Result<impl Reply, std::convert::Infallible> {
-    Ok("Hello, authorized user!")
 }
