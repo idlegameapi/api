@@ -63,7 +63,7 @@ pub async fn create_account(
             _ => warp::reject::custom(InternalError),
         });
 
-    if let Ok(user) = user {
+    if let Ok(_) = user {
         return Err(warp::reject::custom(Conflict));
     }
 
@@ -76,14 +76,12 @@ pub async fn create_account(
     hasher.update(x);
     let result = &hasher.finalize()[..];
 
+    // todo(SirH): return the user (or at least the username)
     let new_user = crate::db::create_user(&pool, &username, result, &salt)
         .await
         .map_err(|_| warp::reject::custom(InternalError))?;
 
-    // note(SirH): I'd prefer we use more formal looking success responses but your current filter seems to say otherwise
     Ok(crate::warp_reply!("Account created".to_owned(), CREATED))
-
-    // Ok(db_pool)
 }
 
 pub async fn auth(
