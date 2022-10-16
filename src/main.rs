@@ -26,17 +26,20 @@ async fn main() {
 
     let state_filter = warp::any().map(move || pool.clone());
 
-    let account_routes = warp::path("account")
-        .and(state_filter.clone())
-        .and(warp::header::<String>("Authorization"))
+    let signup = warp::path("signup")
         .and(warp::post())
-        .and_then(routes::create_account)
-        .or(warp::path("account")
-            .and(state_filter.clone())
-            .and(warp::header::<String>("Authorization"))
-            .and(warp::get())
-            .and_then(routes::auth)
-            .recover(routes::handle_rejection));
+        .and(state_filter.clone())
+        .and(warp::header::<String>("authorization"))
+        .and_then(routes::create_account);
+
+    let signin = warp::path("signin")
+        .and(warp::post())
+        .and(state_filter.clone())
+        .and(warp::header::<String>("authorization"))
+        .and_then(routes::auth)
+        .and_then(routes::get_account);
+
+    let account_routes = signup.or(signin).recover(routes::handle_rejection);
 
     warp::serve(account_routes)
         .run(([127, 0, 0, 1], 3030))
