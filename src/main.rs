@@ -3,6 +3,7 @@ pub mod config;
 pub mod db;
 pub mod models;
 pub mod routes;
+pub mod errors;
 
 use deadpool_postgres::Runtime;
 use tokio_postgres::NoTls;
@@ -39,7 +40,7 @@ async fn main() {
         .and_then(routes::auth)
         .and_then(routes::get_account);
 
-    let account_routes = signup.or(signin).recover(routes::handle_rejection);
+    let account_routes = signup.or(signin).recover(errors::handle_rejection);
 
     warp::serve(account_routes)
         .run(([127, 0, 0, 1], 3030))
