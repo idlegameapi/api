@@ -37,8 +37,7 @@ async fn main() {
         .and(warp::post())
         .and(state_filter.clone())
         .and(warp::header::<String>("authorization"))
-        .and_then(routes::auth)
-        .and_then(routes::get_account);
+        .and_then(routes::login_account);
 
     let account_routes = signup.or(signin).recover(errors::handle_rejection);
 

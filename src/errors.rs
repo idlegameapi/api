@@ -2,6 +2,16 @@ use warp::{Rejection, Reply};
 
 use crate::auth::AuthorizationError;
 
+pub trait ToInternalError<T> {
+    fn to_internal_error(self) -> Result<T, Rejection>;
+}
+
+impl<T, E> ToInternalError<T> for Result<T, E> {
+    fn to_internal_error(self) -> Result<T, Rejection> {
+        self.map_err(|_| warp::reject::custom(InternalError))
+    }
+} 
+
 #[derive(Debug)]
 pub struct NotFound;
 

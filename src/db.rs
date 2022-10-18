@@ -1,12 +1,24 @@
-use std::time::SystemTime;
-
 use crate::models::User;
 use deadpool_postgres::Client;
 use tokio_pg_mapper::{Error, FromTokioPostgresRow};
 
-pub async fn get_user(client: &Client, username: &str) -> Result<User, Error> {
-    let _stmt = include_str!("../sql/get_user.sql");
+pub async fn get_user_by_username(client: &Client, username: &str) -> Result<User, Error> {
+    let _stmt = include_str!("../sql/get_user_by_username.sql");
     let _stmt = _stmt.replace("$username", format!("'{}'", &username).as_str());
+    let stmt = client.prepare(&_stmt).await?;
+
+    let queried_data = client
+        .query(&stmt, &[])
+        .await?
+        .pop()
+        .ok_or(Error::ColumnNotFound)?;
+
+    User::from_row_ref(&queried_data)
+}
+
+pub async fn get_user_by_token(client: &Client, token: &str) -> Result<User, Error> {
+    let _stmt = include_str!("../sql/get_user_by_token.sql");
+    let _stmt = _stmt.replace("$token", format!("'{}'", &token).as_str());
     let stmt = client.prepare(&_stmt).await?;
 
     let queried_data = client
@@ -21,7 +33,7 @@ pub async fn get_user(client: &Client, username: &str) -> Result<User, Error> {
 pub async fn create_user(
     client: &Client,
     username: &str,
-    token: &[u8],
+    token: &str,
     salt: &str,
 ) -> Result<User, Error> {
     let _stmt = include_str!("../sql/create_user.sql");
@@ -30,8 +42,7 @@ pub async fn create_user(
     let queried_data = client
         .query(
             &stmt,
-            // remove the use of SystemTime::now() once we're able to add in CURRENT_TIMESTAMP to User sql
-            &[&username, &token, &salt, &SystemTime::now()],
+            &[&username, &token, &salt],
         )
         .await?
         .pop()

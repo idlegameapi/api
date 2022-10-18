@@ -9,12 +9,12 @@ edition = "2021"
 tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 dotenv = "0.15"
-sha2 = "0.10.6"
 serde = { version = "1", features = ["derive"] }
 tokio-postgres = "0.7"
 deadpool-postgres = "0.10.2"
 tokio-pg-mapper = "0.2"
 tokio-pg-mapper-derive = "0.2"
+argon2 = "0.4.1"
 base64 = "0.13.0"
 thiserror = "1.0.37"
 rand = "0.8.5"
