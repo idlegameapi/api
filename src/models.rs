@@ -6,7 +6,7 @@ use tokio_pg_mapper_derive::PostgresMapper;
 #[pg_mapper(table = "users")]
 pub struct User {
     pub username: String,
-    pub token: Vec<u8>,
+    pub hashed_password: String,
     pub salt: String,
     pub balance: f64,
     pub collected_timestamp: SystemTime,
@@ -22,28 +22,9 @@ impl From<User> for UserWithoutSecrets {
     }
 }
 
-impl From<User> for UserWithoutSalt {
-    fn from(user: User) -> Self {
-        UserWithoutSalt {
-            username: user.username,
-            token: user.token,
-            balance: user.balance,
-            collected_timestamp: user.collected_timestamp,
-        }
-    }
-}
-
 #[derive(Serialize)]
 pub struct UserWithoutSecrets {
     pub username: String,
-    pub balance: f64,
-    pub collected_timestamp: SystemTime,
-}
-
-#[derive(Serialize)]
-pub struct UserWithoutSalt {
-    pub username: String,
-    pub token: Vec<u8>,
     pub balance: f64,
     pub collected_timestamp: SystemTime,
 }
