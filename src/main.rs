@@ -3,6 +3,7 @@ pub mod config;
 pub mod db;
 pub mod models;
 pub mod routes;
+pub mod errors;
 
 use deadpool_postgres::Runtime;
 use tokio_postgres::NoTls;
@@ -26,12 +27,15 @@ async fn main() {
 
     let state_filter = warp::any().map(move || pool.clone());
 
-    let routes = warp::any()
+    let claim = warp::path("claim")
+        .and(warp::post())
         .and(state_filter.clone())
-        .and(warp::header::<String>("Authorization"))
-        .and_then(routes::auth)
-        .and_then(routes::hello_world)
-        .recover(routes::handle_rejection);
+        .and(warp::header::<String>("authorization"))
+        .and_then(routes::create_account);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    let routes = claim.recover(errors::handle_rejection);
+
+    warp::serve(routes)
+        .run(([127, 0, 0, 1], 3030))
+        .await;
 }

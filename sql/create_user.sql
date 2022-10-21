@@ -1,3 +1,3 @@
-INSERT INTO users (username, token, salt, balance, collected_timestamp)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (username, token, salt)
+VALUES ($1, $2, $3)
 RETURNING *;

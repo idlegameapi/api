@@ -1,73 +1,84 @@
-use sha2::{Digest, Sha256};
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
 use warp::{Rejection, Reply};
 
-use crate::auth;
+use crate::{
+    auth,
+    errors::*,
+    models::{User, UserWithoutSecrets},
+};
 
-#[derive(Debug)]
-struct InternalError;
-
-impl warp::reject::Reject for InternalError {}
-
-#[derive(Debug)]
-struct NotAuthorized;
-
-impl warp::reject::Reject for NotAuthorized {}
-
-pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert::Infallible> {
-    if err.is_not_found() {
-        Ok(crate::warp_reply!(
-            "There is no user with that name".to_owned(),
-            NOT_FOUND
-        ))
-    } else if let Some(e) = err.find::<auth::AuthorizationError>() {
-        Ok(crate::warp_reply!(format!("{:?}", e), BAD_REQUEST))
-    } else if err.find::<NotAuthorized>().is_some() {
-        Ok(crate::warp_reply!(
-            "The password is incorrect".to_string(),
-            UNAUTHORIZED
-        ))
-    } else {
-        eprintln!("An unknown error occured: {:?}", err);
-        Ok(crate::warp_reply!(
-            "Something went wrong, please try again later.".to_owned(),
-            INTERNAL_SERVER_ERROR
-        ))
-    }
-}
-
-pub async fn auth(
+/// Authorizes a user based on a Basic Auth header
+pub async fn authorize(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
-) -> std::result::Result<deadpool_postgres::Pool, Rejection> {
+) -> Result<(deadpool_postgres::Pool, User), Rejection> {
     let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
     let pool = db_pool
         .get()
         .await
-        .map_err(|_| warp::reject::custom(InternalError))?;
+        .to_internal_error()?;
 
-    let user = crate::db::get_user(&pool, &username)
+    let user = crate::db::get_user_by_username(&pool, &username)
         .await
         .map_err(|err| match err {
-            tokio_pg_mapper::Error::ColumnNotFound => warp::reject::not_found(),
+            tokio_pg_mapper::Error::ColumnNotFound => warp::reject::custom(NotFound),
             _ => warp::reject::custom(InternalError),
         })?;
 
-    let mut hasher = Sha256::new();
-    let mut x = password.into_bytes();
-    x.extend(user.salt.trim().as_bytes());
+    let argon2 = Argon2::default();
+    let password_hash = argon2
+        .hash_password(password.as_bytes(), &user.salt)
+        .to_internal_error()?
+        .to_string();
 
-    hasher.update(x);
-    let result = hasher.finalize();
+    let parsed_hash = PasswordHash::new(&password_hash).to_internal_error()?;
 
-    if result[..] == user.token {
-        Ok(db_pool)
+    if argon2
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_ok()
+    {
+        Ok((db_pool, user))
     } else {
         Err(warp::reject::custom(NotAuthorized))
     }
 }
 
-pub async fn hello_world(
+/// Create a new user via providing a Basic Auth header
+pub async fn create_account(
     db_pool: deadpool_postgres::Pool,
-) -> Result<impl Reply, std::convert::Infallible> {
-    Ok("Hello, authorized user!")
+    auth_header: String,
+) -> Result<impl Reply, Rejection> {
+    let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
+    let pool = db_pool
+        .get()
+        .await
+        .to_internal_error()?;
+
+    let user = crate::db::get_user_by_username(&pool, &username)
+        .await
+        .map_err(|err| match err {
+            tokio_pg_mapper::Error::ColumnNotFound => warp::reject::custom(NotFound),
+            _ => warp::reject::custom(InternalError),
+        });
+
+    if let Ok(_) = user {
+        return Err(warp::reject::custom(Conflict));
+    }
+
+    let salt = SaltString::generate(&mut OsRng);
+
+    let argon2 = Argon2::default();
+    let password_hash = argon2
+        .hash_password(password.as_bytes(), &salt)
+        .to_internal_error()?
+        .to_string();
+
+    let new_user = crate::db::create_user(&pool, &username, &password_hash, &salt.to_string())
+        .await
+        .to_internal_error()?;
+
+    Ok(warp::reply::json(&UserWithoutSecrets::from(new_user)))
 }
