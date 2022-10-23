@@ -32,8 +32,18 @@ pub struct NotAuthorized;
 
 impl warp::reject::Reject for NotAuthorized {}
 
+#[derive(Debug)]
+pub struct NotEnoughMoney;
+
+impl warp::reject::Reject for NotEnoughMoney {}
+
 pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert::Infallible> {
-    if err.is_not_found() {
+    if err.find::<NotEnoughMoney>().is_some() {
+        Ok(crate::warp_reply!(
+            "Not enough money to upgrade",
+            BAD_REQUEST
+        ))
+    } else if err.find::<NotFound>().is_some() {
         Ok(crate::warp_reply!(
             "There is no user with that name".to_owned(),
             NOT_FOUND
@@ -42,13 +52,13 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
         Ok(crate::warp_reply!(format!("{:?}", e), BAD_REQUEST))
     } else if err.find::<NotAuthorized>().is_some() {
         Ok(crate::warp_reply!(
-            "The password is incorrect".to_string(),
+            "The password is incorrect".to_owned(),
             UNAUTHORIZED
         ))
     }
     else if err.find::<Conflict>().is_some() {
         Ok(crate::warp_reply!(
-            "The provided username already exists".to_string(),
+            "The provided username already exists".to_owned(),
             CONFLICT
         ))
     } else {

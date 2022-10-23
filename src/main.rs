@@ -26,14 +26,24 @@ async fn main() {
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
     let state_filter = warp::any().map(move || pool.clone());
+    let necessity = state_filter.and(warp::header::<String>("authorization"));
 
     let claim = warp::path("claim")
         .and(warp::post())
-        .and(state_filter.clone())
-        .and(warp::header::<String>("authorization"))
+        .and(necessity.clone())
         .and_then(routes::create_account);
 
-    let routes = claim.recover(errors::handle_rejection);
+    let collect = warp::path("collect")
+        .and(warp::post())
+        .and(necessity.clone())
+        .and_then(routes::collect);
+
+    let upgrade = warp::path("upgrade")
+        .and(warp::post())
+        .and(necessity.clone())
+        .and_then(routes::upgrade);
+
+    let routes = claim.or(collect).or(upgrade).recover(errors::handle_rejection);
 
     warp::serve(routes)
         .run(([127, 0, 0, 1], 3030))
