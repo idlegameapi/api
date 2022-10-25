@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use crate::models::User;
 use deadpool_postgres::Client;
 use tokio_pg_mapper::{Error, FromTokioPostgresRow};
@@ -43,6 +45,47 @@ pub async fn create_user(
         .query(
             &stmt,
             &[&username, &token, &salt],
+        )
+        .await?
+        .pop()
+        .ok_or(Error::ColumnNotFound)?;
+
+    User::from_row_ref(&queried_data)
+}
+
+pub async fn collect_user(
+    client: &Client,
+    username: &str,
+    balance: f64,
+) -> Result<User, Error> {
+    let _stmt = include_str!("../sql/collect_user.sql");
+    let stmt = client.prepare(_stmt).await?;
+
+    let queried_data = client
+        .query(
+            &stmt,
+            &[&username, &balance, &SystemTime::now()],
+        )
+        .await?
+        .pop()
+        .ok_or(Error::ColumnNotFound)?;
+
+    User::from_row_ref(&queried_data)
+}
+
+pub async fn upgrade_user(
+    client: &Client,
+    username: &str,
+    balance: f64,
+    level: i32,
+) -> Result<User, Error> {
+    let _stmt = include_str!("../sql/upgrade_user.sql");
+    let stmt = client.prepare(_stmt).await?;
+
+    let queried_data = client
+        .query(
+            &stmt,
+            &[&username, &balance, &level],
         )
         .await?
         .pop()
