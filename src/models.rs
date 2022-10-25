@@ -59,19 +59,19 @@ impl GameCalculations for User {
     fn get_production(&self) -> f64 {
         let mut production = Self::BASE_PRODUCTION;
         for progressed_level in 1..=self.level {
-            production += Self::BASE_PRODUCTION * Self::PRODUCTION_MULTIPLIER.powi(progressed_level);
+            production += (Self::BASE_PRODUCTION * Self::PRODUCTION_MULTIPLIER.powi(progressed_level)).round();
         }
         production
     }
 
     /// Calculates the cost of the next level
     fn next_level_cost(&self) -> f64 {
-        Self::BASE_COST * Self::COST_MULTIPLIER.powi(self.level)
+        (Self::BASE_COST * Self::COST_MULTIPLIER.powi(self.level)).round()
     }
 
     /// Calculates the cost of a specific level, but keep in mind that this calculates by the level after the specified level.
     fn specific_level_cost(&self, level: i32) -> f64 {
-        Self::BASE_COST * Self::COST_MULTIPLIER.powi(level)
+        (Self::BASE_COST * Self::COST_MULTIPLIER.powi(level)).round()
     }
 
     /// Calculates the amount of possible levels you can upgrade to.
@@ -137,9 +137,9 @@ mod tests {
             collected_timestamp: SystemTime::now(),
         };
 
-        assert_eq!(user.specific_level_cost(1), 5.0 * 1.15);
-        assert_eq!(user.specific_level_cost(2), 5.0 * 1.15 * 1.15);
-        assert_eq!(user.specific_level_cost(3), 5.0 * 1.15 * 1.15 * 1.15);
+        assert_eq!(user.specific_level_cost(1), (5.0_f64 * 1.15).round());
+        assert_eq!(user.specific_level_cost(2), (5.0_f64 * 1.15 * 1.15).round());
+        assert_eq!(user.specific_level_cost(3), (5.0_f64 * 1.15 * 1.15 * 1.15).round());
     }
 
     #[test]
