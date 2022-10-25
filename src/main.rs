@@ -25,22 +25,23 @@ async fn main() {
     // note(SirH): this pool will go through routes so then you can interact with the db via this manager
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
-    let state_filter = warp::any().map(move || pool.clone());
-    let necessity = state_filter.and(warp::header::<String>("authorization"));
+    let auth_header = warp::any().map(move || pool.clone()).and(warp::header::<String>("authorization"));
 
     let claim = warp::path("claim")
         .and(warp::post())
-        .and(necessity.clone())
+        .and(auth_header.clone())
         .and_then(routes::create_account);
 
     let collect = warp::path("collect")
-        .and(warp::post())
-        .and(necessity.clone())
+        .and(warp::patch())
+        .and(auth_header.clone())
+        .and_then(routes::authorize)
         .and_then(routes::collect);
 
     let upgrade = warp::path("upgrade")
-        .and(warp::post())
-        .and(necessity.clone())
+        .and(warp::patch())
+        .and(auth_header.clone())
+        .and_then(routes::authorize)
         .and_then(routes::upgrade);
 
     let routes = claim.or(collect).or(upgrade).recover(errors::handle_rejection);

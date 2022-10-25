@@ -41,7 +41,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
     if err.find::<NotEnoughMoney>().is_some() {
         Ok(crate::warp_reply!(
             "Not enough money to upgrade".to_owned(),
-            BAD_REQUEST
+            FORBIDDEN
         ))
     } else if err.find::<NotFound>().is_some() {
         Ok(crate::warp_reply!(

@@ -58,7 +58,7 @@ impl GameCalculations for User {
     /// calculates the production of the user
     fn get_production(&self) -> f64 {
         let mut production = Self::BASE_PRODUCTION;
-        for progressed_level in 1..self.level {
+        for progressed_level in 1..=self.level {
             production += Self::BASE_PRODUCTION * Self::PRODUCTION_MULTIPLIER.powi(progressed_level);
         }
         production
@@ -83,13 +83,87 @@ impl GameCalculations for User {
             return Err(());
         }
 
-        while self.balance >= cost {
+        while self.balance > cost {
             level += 1;
-            cost += self.specific_level_cost(self.level);
+            cost += self.specific_level_cost(level);
         }
+        cost -= self.specific_level_cost(level);
         level -= 1;
-        cost -= self.specific_level_cost(self.level);
 
         Ok(UpgradeableLevelsOutput { level, cost })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_production() {
+        let user = User {
+            username: "username".to_string(),
+            hashed_password: "hashed_password".to_string(),
+            salt: "salt".to_string(),
+            balance: 0.0,
+            level: 0,
+            collected_timestamp: SystemTime::now(),
+        };
+
+        assert_eq!(user.get_production(), 1.0);
+    }
+
+    #[test]
+    fn test_next_level_cost() {
+        let user = User {
+            username: "username".to_string(),
+            hashed_password: "hashed_password".to_string(),
+            salt: "salt".to_string(),
+            balance: 0.0,
+            level: 0,
+            collected_timestamp: SystemTime::now(),
+        };
+
+        assert_eq!(user.next_level_cost(), 5.0);
+    }
+
+    #[test]
+    fn test_specific_level_cost() {
+        let user = User {
+            username: "username".to_string(),
+            hashed_password: "hashed_password".to_string(),
+            salt: "salt".to_string(),
+            balance: 0.0,
+            level: 0,
+            collected_timestamp: SystemTime::now(),
+        };
+
+        assert_eq!(user.specific_level_cost(1), 5.0 * 1.15);
+        assert_eq!(user.specific_level_cost(2), 5.0 * 1.15 * 1.15);
+        assert_eq!(user.specific_level_cost(3), 5.0 * 1.15 * 1.15 * 1.15);
+    }
+
+    #[test]
+    fn test_upgradeable_levels() {
+        let user = User {
+            username: "username".to_owned(),
+            hashed_password: "hashed_password".to_owned(),
+            salt: "salt".to_owned(),
+            balance: 0.0,
+            level: 0,
+            collected_timestamp: SystemTime::now(),
+        };
+
+        assert_eq!(user.upgradeable_levels().is_err(), true);
+
+        let user = User {
+            username: "username".to_owned(),
+            hashed_password: "hashed_password".to_owned(),
+            salt: "salt".to_owned(),
+            balance: 5.0,
+            level: 0,
+            collected_timestamp: SystemTime::now(),
+        };
+
+        assert_eq!(user.upgradeable_levels().is_ok(), true);
     }
 }

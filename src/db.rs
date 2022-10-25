@@ -53,12 +53,12 @@ pub async fn create_user(
     User::from_row_ref(&queried_data)
 }
 
-pub async fn update_collect_user(
+pub async fn collect_user(
     client: &Client,
     username: &str,
     balance: f64,
 ) -> Result<User, Error> {
-    let _stmt = include_str!("../sql/update_collect_user.sql");
+    let _stmt = include_str!("../sql/collect_user.sql");
     let stmt = client.prepare(_stmt).await?;
 
     let queried_data = client
@@ -73,13 +73,13 @@ pub async fn update_collect_user(
     User::from_row_ref(&queried_data)
 }
 
-pub async fn update_upgrade_user(
+pub async fn upgrade_user(
     client: &Client,
     username: &str,
     balance: f64,
     level: i32,
 ) -> Result<User, Error> {
-    let _stmt = include_str!("../sql/update_upgrade_user.sql");
+    let _stmt = include_str!("../sql/upgrade_user.sql");
     let stmt = client.prepare(_stmt).await?;
 
     let queried_data = client
