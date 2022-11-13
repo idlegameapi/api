@@ -25,11 +25,11 @@ impl Config {
         db_config: &'a mut deadpool_postgres::Config,
         env_vars: &'a [(String, String)],
     ) -> &'a mut deadpool_postgres::Config {
-        db_config.user = Some(find_key(env_vars, "DBUSER"));
-        db_config.password = Some(find_key(env_vars, "PASSWORD"));
-        db_config.host = Some(find_key(env_vars, "HOST"));
-        db_config.port = Some(find_key(env_vars, "PORT").parse().unwrap());
-        db_config.dbname = Some(find_key(env_vars, "DBNAME"));
+        db_config.user = Some(find_key(env_vars, "PG_USER"));
+        db_config.password = Some(find_key(env_vars, "PG_PASSWORD"));
+        db_config.host = Some(find_key(env_vars, "PG_HOST"));
+        db_config.port = Some(find_key(env_vars, "PG_PORT").parse().unwrap());
+        db_config.dbname = Some(find_key(env_vars, "PG_DBNAME"));
         db_config
     }
 }
