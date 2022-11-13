@@ -1,10 +1,19 @@
 use crate::prelude::*;
-use std::time::SystemTime;
+use std::{convert::Infallible, time::SystemTime};
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
+
+/**
+Checks if the server is up,
+this will never return an error
+so the error type is infallible.
+*/
+pub async fn is_alive() -> Result<impl Reply, Infallible> {
+    Ok("Server is up!")
+}
 
 /// Authorizes a user based on a Basic Auth header
 pub async fn authorize(
