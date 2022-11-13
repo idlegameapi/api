@@ -1,23 +1,26 @@
-use std::time::SystemTime;
+use crate::prelude::*;
+use std::{convert::Infallible, time::SystemTime};
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
-use warp::{Rejection, Reply};
 
-use crate::{
-    auth,
-    errors::*,
-    models::{GameCalculations, User, UserWithoutSecrets},
-};
+/**
+Checks if the server is up,
+this will never return an error
+so the error type is infallible.
+*/
+pub async fn is_alive() -> Result<impl Reply, Infallible> {
+    Ok("Server is up!")
+}
 
 /// Authorizes a user based on a Basic Auth header
 pub async fn authorize(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
 ) -> Result<(deadpool_postgres::Pool, User), Rejection> {
-    let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
+    let Auth { username, password } = validate_header(auth_header.as_str())?;
     let pool = db_pool.get().await.to_internal_error()?;
 
     let user = crate::db::get_user_by_username(&pool, &username)
@@ -50,7 +53,7 @@ pub async fn create_account(
     db_pool: deadpool_postgres::Pool,
     auth_header: String,
 ) -> Result<impl Reply, Rejection> {
-    let auth::Auth { username, password } = auth::validate_header(auth_header.as_str())?;
+    let Auth { username, password } = validate_header(auth_header.as_str())?;
     let pool = db_pool.get().await.to_internal_error()?;
 
     let user = crate::db::get_user_by_username(&pool, &username)
@@ -104,8 +107,7 @@ pub async fn collect(
 ///
 /// This will return a 403 if the user does not have enough money to upgrade
 pub async fn upgrade(
-    (db_pool,
-    user): (deadpool_postgres::Pool, User),
+    (db_pool, user): (deadpool_postgres::Pool, User),
 ) -> Result<impl Reply, Rejection> {
     let pool = db_pool.get().await.to_internal_error()?;
 
@@ -116,10 +118,14 @@ pub async fn upgrade(
         Err(_) => return Err(warp::reject::custom(NotEnoughMoney)),
     };
 
-    let updated_user =
-        crate::db::upgrade_user(&pool, &user.username, user.balance - upgrade.cost, upgrade.level)
-            .await
-            .to_internal_error()?;
+    let updated_user = crate::db::upgrade_user(
+        &pool,
+        &user.username,
+        user.balance - upgrade.cost,
+        upgrade.level,
+    )
+    .await
+    .to_internal_error()?;
 
     Ok(warp::reply::json(&updated_user))
 }

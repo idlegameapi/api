@@ -1,6 +1,4 @@
-use warp::{Rejection, Reply};
-
-use crate::auth::AuthorizationError;
+use crate::prelude::*;
 
 pub trait ToInternalError<T> {
     fn to_internal_error(self) -> Result<T, Rejection>;
@@ -10,7 +8,7 @@ impl<T, E> ToInternalError<T> for Result<T, E> {
     fn to_internal_error(self) -> Result<T, Rejection> {
         self.map_err(|_| warp::reject::custom(InternalError))
     }
-} 
+}
 
 #[derive(Debug)]
 pub struct NotFound;
@@ -55,8 +53,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, std::convert
             "The password is incorrect".to_owned(),
             UNAUTHORIZED
         ))
-    }
-    else if err.find::<Conflict>().is_some() {
+    } else if err.find::<Conflict>().is_some() {
         Ok(crate::warp_reply!(
             "The provided username already exists".to_owned(),
             CONFLICT

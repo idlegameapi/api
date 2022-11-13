@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use dotenv::vars;
 
 #[derive(Debug)]
@@ -25,21 +26,11 @@ impl Config {
         db_config: &'a mut deadpool_postgres::Config,
         env_vars: &'a [(String, String)],
     ) -> &'a mut deadpool_postgres::Config {
-        db_config.user = Some(find_key(env_vars, "DBUSER"));
-        db_config.password = Some(find_key(env_vars, "PASSWORD"));
-        db_config.host = Some(find_key(env_vars, "HOST"));
-        db_config.port = Some(find_key(env_vars, "PORT").parse().unwrap());
-        db_config.dbname = Some(find_key(env_vars, "DBNAME"));
+        db_config.user = Some(env_get(env_vars, "PG_USER"));
+        db_config.password = Some(env_get(env_vars, "PG_PASSWORD"));
+        db_config.host = Some(env_get(env_vars, "PG_HOST"));
+        db_config.port = Some(env_get(env_vars, "PG_PORT").parse().unwrap());
+        db_config.dbname = Some(env_get(env_vars, "PG_DBNAME"));
         db_config
-    }
-}
-
-pub fn find_key(iteration: &[(String, String)], key_search: &'static str) -> String {
-    match iteration.iter().find(|(key, _)| key == key_search) {
-        Some((_, value)) => value.to_string(),
-        None => panic!(
-            "couldn't find '{}' in the environment variables",
-            key_search
-        ),
     }
 }
