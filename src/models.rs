@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use crate::prelude::*;
 use std::time::SystemTime;
 use tokio_pg_mapper_derive::PostgresMapper;
 
@@ -59,7 +59,9 @@ impl GameCalculations for User {
     fn get_production(&self) -> f64 {
         let mut production = Self::BASE_PRODUCTION;
         for progressed_level in 1..=self.level {
-            production += (Self::BASE_PRODUCTION * Self::PRODUCTION_MULTIPLIER.powi(progressed_level)).round();
+            production += (Self::BASE_PRODUCTION
+                * Self::PRODUCTION_MULTIPLIER.powi(progressed_level))
+            .round();
         }
         production
     }
@@ -139,7 +141,10 @@ mod tests {
 
         assert_eq!(user.specific_level_cost(1), (5.0_f64 * 1.15).round());
         assert_eq!(user.specific_level_cost(2), (5.0_f64 * 1.15 * 1.15).round());
-        assert_eq!(user.specific_level_cost(3), (5.0_f64 * 1.15 * 1.15 * 1.15).round());
+        assert_eq!(
+            user.specific_level_cost(3),
+            (5.0_f64 * 1.15 * 1.15 * 1.15).round()
+        );
     }
 
     #[test]

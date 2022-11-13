@@ -1,6 +1,5 @@
+use crate::prelude::*;
 use std::time::SystemTime;
-
-use crate::models::User;
 use deadpool_postgres::Client;
 use tokio_pg_mapper::{Error, FromTokioPostgresRow};
 

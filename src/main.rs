@@ -1,9 +1,11 @@
 pub mod auth;
 pub mod config;
 pub mod db;
-pub mod models;
-pub mod routes;
 pub mod errors;
+pub mod models;
+pub mod prelude;
+pub mod routes;
+pub mod utils;
 
 use deadpool_postgres::Runtime;
 use tokio_postgres::NoTls;
@@ -25,7 +27,9 @@ async fn main() {
     // note(SirH): this pool will go through routes so then you can interact with the db via this manager
     let pool = config.pg.create_pool(Some(Runtime::Tokio1), NoTls).unwrap();
 
-    let auth_header = warp::any().map(move || pool.clone()).and(warp::header::<String>("authorization"));
+    let auth_header = warp::any()
+        .map(move || pool.clone())
+        .and(warp::header::<String>("authorization"));
 
     let claim = warp::path("claim")
         .and(warp::post())
@@ -44,9 +48,10 @@ async fn main() {
         .and_then(routes::authorize)
         .and_then(routes::upgrade);
 
-    let routes = claim.or(collect).or(upgrade).recover(errors::handle_rejection);
+    let routes = claim
+        .or(collect)
+        .or(upgrade)
+        .recover(errors::handle_rejection);
 
-    warp::serve(routes)
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
